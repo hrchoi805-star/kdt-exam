@@ -1,0 +1,1097 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TasteLog - 나만의 맛집 지도 & 공유 플랫폼</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts Inter & Noto Sans KR -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Noto Sans KR"', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#fff7ed',
+              100: '#ffedd5',
+              200: '#fed7aa',
+              300: '#fdba74',
+              400: '#fb923c',
+              500: '#f97316', // 메인 오렌지
+              600: '#ea580c',
+              700: '#c2410c',
+              800: '#9a3412',
+              900: '#7c2d12',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* 커스텀 스크롤바 */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #fdfaf6;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #fdba74;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #f97316;
+    }
+    .modal-backdrop {
+      backdrop-filter: blur(4px);
+    }
+    .hide-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .hide-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body class="bg-[#FFFDF9] text-gray-800 min-h-screen flex flex-col font-sans selection:bg-brand-200 selection:text-brand-900">
+
+  <!-- 헤더 네비게이션 -->
+  <header class="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-orange-100 shadow-sm transition-all duration-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-20">
+        <!-- 로고 -->
+        <a href="#" onclick="resetFilters(event)" class="flex items-center gap-3 group">
+          <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-brand-600 to-amber-500 flex items-center justify-center text-white shadow-md shadow-brand-500/20 group-hover:scale-105 transition-transform duration-200">
+            <i class="fa-solid fa-utensils text-xl"></i>
+          </div>
+          <div>
+            <span class="text-2xl font-extrabold tracking-tight bg-gradient-to-r from-brand-600 to-amber-600 bg-clip-text text-transparent">TasteLog</span>
+            <span class="block text-[11px] font-medium text-gray-400 tracking-wider">미식 큐레이션 커뮤니티</span>
+          </div>
+        </a>
+
+        <!-- 우측 액션 버튼들 -->
+        <div class="flex items-center gap-3">
+          <!-- 찜 모아보기 토글 버튼 -->
+          <button id="toggleBookmarksBtn" onclick="toggleBookmarkFilter()" 
+                  class="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-orange-200 text-gray-700 hover:border-brand-500 hover:text-brand-600 font-medium text-sm transition-all bg-white shadow-sm active:scale-95">
+            <i class="fa-solid fa-bookmark text-amber-500"></i>
+            <span class="hidden sm:inline">내 찜 목록</span>
+            <span id="bookmarkBadge" class="bg-brand-100 text-brand-700 text-xs px-2 py-0.5 rounded-full font-bold">0</span>
+          </button>
+
+          <!-- 맛집 등록 버튼 -->
+          <button onclick="openAddModal()" 
+                  class="flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl bg-gradient-to-r from-brand-500 to-amber-500 hover:from-brand-600 hover:to-amber-600 text-white font-semibold text-sm shadow-md shadow-brand-500/30 hover:shadow-lg hover:shadow-brand-500/40 transition-all active:scale-95">
+            <i class="fa-solid fa-plus font-bold"></i>
+            <span>맛집 등록</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- 메인 히어로 섹션 -->
+  <section class="relative bg-gradient-to-b from-orange-50 via-amber-50/40 to-transparent pt-10 pb-12 border-b border-orange-100/60 overflow-hidden">
+    <div class="absolute -top-24 -right-24 w-96 h-96 bg-brand-200/40 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="absolute -bottom-24 -left-24 w-96 h-96 bg-amber-200/30 rounded-full blur-3xl pointer-events-none"></div>
+
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 text-center relative z-10">
+      <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-brand-100/80 text-brand-700 mb-4 border border-brand-200/60">
+        <i class="fa-solid fa-fire text-brand-500"></i> 검증된 전국의 숨은 로컬 맛집
+      </span>
+      <h1 class="text-3xl sm:text-4xl md:text-5xl font-black text-gray-900 tracking-tight leading-tight">
+        오늘 한 끼는 어디서 드실래요?<br>
+        <span class="bg-gradient-to-r from-brand-500 via-brand-600 to-amber-600 bg-clip-text text-transparent">진짜 맛집들의 기록, TasteLog</span>
+      </h1>
+      <p class="mt-4 text-base sm:text-lg text-gray-600 max-w-2xl mx-auto font-normal">
+        광고 없는 솔직한 평점과 추천 메뉴, 생생한 후기를 확인하고<br class="hidden sm:inline"> 당신만의 보석 같은 맛집을 함께 기록해보세요.
+      </p>
+
+      <!-- 통합 검색창 -->
+      <div class="mt-8 max-w-2xl mx-auto">
+        <div class="relative flex items-center bg-white rounded-2xl shadow-xl shadow-orange-950/5 border border-orange-200 p-1.5 sm:p-2 focus-within:ring-2 focus-within:ring-brand-500 focus-within:border-brand-500 transition-all">
+          <i class="fa-solid fa-magnifying-glass text-gray-400 pl-4 pr-3 text-lg"></i>
+          <input type="text" id="searchInput" oninput="handleSearch(this.value)" placeholder="식당 이름, 대표 메뉴, 지역(예: 을지로, 성수, 파스타)을 검색해보세요" 
+                 class="w-full bg-transparent text-gray-800 placeholder-gray-400 focus:outline-none text-sm sm:text-base pr-4">
+          <button id="clearSearchBtn" onclick="clearSearch()" class="hidden text-gray-400 hover:text-gray-600 p-2">
+            <i class="fa-solid fa-circle-xmark"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 메인 콘텐츠 영역 -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full">
+    
+    <!-- 카테고리 필터 탭 & 정렬 드롭다운 컨트롤 -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-orange-100">
+      
+      <!-- 카테고리 칩 목록 -->
+      <div class="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 hide-scrollbar" id="categoryChips">
+        <!-- JS 렌더링 -->
+      </div>
+
+      <!-- 정렬 컨트롤 및 카운트 -->
+      <div class="flex items-center justify-between md:justify-end gap-4 shrink-0">
+        <span class="text-sm font-medium text-gray-500">
+          총 <strong id="totalCount" class="text-brand-600 font-bold">0</strong>곳의 맛집
+        </span>
+
+        <div class="relative inline-block text-left">
+          <select id="sortBy" onchange="handleSortChange(this.value)" 
+                  class="bg-white border border-gray-200 hover:border-brand-400 text-gray-700 text-sm font-medium rounded-xl px-3.5 py-2 pr-8 shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-500 cursor-pointer appearance-none">
+            <option value="newest">최신 등록순</option>
+            <option value="rating">평점 높은순</option>
+            <option value="likes">인기(찜) 많은순</option>
+          </select>
+          <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-gray-400">
+            <i class="fa-solid fa-chevron-down text-xs"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 찜 필터링 활성화 안내 배너 -->
+    <div id="bookmarkNotice" class="hidden my-4 p-4 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-full bg-amber-200 text-amber-700 flex items-center justify-center font-bold">
+          <i class="fa-solid fa-heart"></i>
+        </div>
+        <span class="text-sm text-amber-900 font-medium">내가 찜한 맛집들만 모아보고 있습니다.</span>
+      </div>
+      <button onclick="toggleBookmarkFilter()" class="text-xs font-semibold text-amber-800 hover:underline">
+        전체 보기 <i class="fa-solid fa-arrow-right ml-1"></i>
+      </button>
+    </div>
+
+    <!-- 맛집 카드 그리드 -->
+    <div id="placesGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-7 mt-8">
+      <!-- 동적 카드 렌더링 -->
+    </div>
+
+    <!-- 결과 없음 (Empty State) -->
+    <div id="emptyState" class="hidden text-center py-20">
+      <div class="w-20 h-20 mx-auto rounded-full bg-orange-100 flex items-center justify-center text-brand-500 text-3xl mb-4">
+        <i class="fa-solid fa-utensils"></i>
+      </div>
+      <h3 class="text-xl font-bold text-gray-800 mb-1">조건에 맞는 맛집이 없습니다</h3>
+      <p class="text-gray-500 text-sm mb-6">검색어나 카테고리 필터를 변경하거나 새로운 맛집을 직접 등록해보세요!</p>
+      <button onclick="openAddModal()" class="inline-flex items-center gap-2 px-5 py-2.5 bg-brand-500 hover:bg-brand-600 text-white text-sm font-semibold rounded-xl shadow-md transition-colors">
+        <i class="fa-solid fa-plus"></i> 첫 맛집 등록하기
+      </button>
+    </div>
+
+  </main>
+
+  <!-- 하단 푸터 -->
+  <footer class="bg-white border-t border-orange-100/80 py-10 mt-12 text-sm text-gray-500">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4">
+      <div class="flex items-center gap-2">
+        <div class="w-7 h-7 rounded-lg bg-brand-500 text-white flex items-center justify-center text-xs font-bold">
+          <i class="fa-solid fa-utensils"></i>
+        </div>
+        <span class="font-bold text-gray-800">TasteLog</span>
+        <span>— 당신 곁의 따뜻한 맛집 가이드</span>
+      </div>
+      <p class="text-xs text-gray-400">© 2026 TasteLog. All rights reserved. 맛있는 일상을 함께 나누세요.</p>
+    </div>
+  </footer>
+
+  <!-- 알림 토스트 (Toast Alert) -->
+  <div id="toastMessage" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 pointer-events-none transition-all duration-300 flex items-center gap-3 bg-gray-900/90 text-white px-5 py-3.5 rounded-2xl shadow-2xl backdrop-blur-sm border border-gray-700">
+    <i id="toastIcon" class="fa-solid fa-check-circle text-brand-400 text-lg"></i>
+    <span id="toastText" class="text-sm font-medium">안내 메시지</span>
+  </div>
+
+  <!-- 맛집 상세 모달 -->
+  <div id="detailModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+    <div class="fixed inset-0 bg-black/60 modal-backdrop transition-opacity" onclick="closeDetailModal()"></div>
+
+    <div class="relative bg-white rounded-3xl max-w-2xl w-full overflow-hidden shadow-2xl z-10 my-8 flex flex-col max-h-[90vh]">
+      <!-- 모달 닫기 버튼 -->
+      <button onclick="closeDetailModal()" class="absolute top-4 right-4 z-20 w-10 h-10 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center transition-all backdrop-blur-sm">
+        <i class="fa-solid fa-xmark text-lg"></i>
+      </button>
+
+      <!-- 상단 이미지 배너 -->
+      <div class="relative h-64 sm:h-80 w-full overflow-hidden bg-gray-100 shrink-0">
+        <img id="detailImage" src="" alt="맛집 대표 사진" class="w-full h-full object-cover">
+        <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+        <div class="absolute bottom-4 left-5 right-5 text-white">
+          <div class="flex items-center gap-2 mb-1.5">
+            <span id="detailCategory" class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-brand-500/90 text-white backdrop-blur-sm">한식</span>
+            <span id="detailLocation" class="text-xs text-white/90 font-medium flex items-center gap-1">
+              <i class="fa-solid fa-location-dot text-amber-400"></i> <span id="detailLocationText">서울 중구</span>
+            </span>
+          </div>
+          <h2 id="detailTitle" class="text-2xl sm:text-3xl font-extrabold tracking-tight">상호명</h2>
+        </div>
+      </div>
+
+      <!-- 모달 스크롤 본문 -->
+      <div class="p-6 overflow-y-auto space-y-6">
+        
+        <!-- 평점 및 요약 스탯 -->
+        <div class="flex items-center justify-between pb-4 border-b border-gray-100">
+          <div class="flex items-center gap-3">
+            <div class="flex items-center gap-1 text-amber-500 text-lg" id="detailStarDisplay">
+              <!-- 별점 렌더 -->
+            </div>
+            <span id="detailRatingValue" class="text-xl font-bold text-gray-900">4.8</span>
+            <span class="text-xs text-gray-400">/ 5.0</span>
+          </div>
+          
+          <div class="flex items-center gap-2">
+            <button id="detailLikeBtn" onclick="toggleDetailBookmark()" class="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-gray-200 text-gray-700 hover:border-brand-500 hover:text-brand-600 transition-all font-medium text-sm">
+              <i class="fa-regular fa-heart"></i>
+              <span id="detailLikeCount">0</span>
+            </button>
+            <button onclick="sharePlace()" class="p-2.5 rounded-xl border border-gray-200 text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-all" title="링크 공유">
+              <i class="fa-solid fa-share-nodes"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- 대표 추천 메뉴 -->
+        <div>
+          <h4 class="text-sm font-bold text-gray-900 flex items-center gap-2 mb-2">
+            <i class="fa-solid fa-bowl-food text-brand-500"></i> 대표 시그니처 메뉴
+          </h4>
+          <div id="detailMenuBadge" class="inline-block bg-orange-50 border border-orange-200 text-brand-800 px-3.5 py-1.5 rounded-xl text-sm font-semibold">
+            메뉴 정보
+          </div>
+        </div>
+
+        <!-- 솔직 리뷰 / 한줄평 -->
+        <div>
+          <h4 class="text-sm font-bold text-gray-900 flex items-center gap-2 mb-2">
+            <i class="fa-solid fa-comment-dots text-brand-500"></i> 방문자 솔직 후기
+          </h4>
+          <div class="p-4 rounded-2xl bg-gray-50 border border-gray-100 text-gray-700 text-sm leading-relaxed whitespace-pre-line" id="detailReview">
+            리뷰 내용
+          </div>
+        </div>
+
+        <!-- 위치 정보 & 지도 가상 뷰어 (Mock Map) -->
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <h4 class="text-sm font-bold text-gray-900 flex items-center gap-2">
+              <i class="fa-solid fa-map-location-dot text-brand-500"></i> 위치 안내
+            </h4>
+            <span id="detailAddressCopy" onclick="copyDetailAddress()" class="text-xs text-brand-600 font-semibold cursor-pointer hover:underline">
+              <i class="fa-regular fa-copy mr-0.5"></i> 주소 복사
+            </span>
+          </div>
+          <p id="detailFullAddress" class="text-xs text-gray-500 mb-3"></p>
+          
+          <div class="w-full h-40 bg-gradient-to-br from-amber-50 to-orange-100 rounded-2xl border border-orange-200/80 flex flex-col items-center justify-center relative overflow-hidden group">
+            <!-- 가상 지도 격자 및 마커 디자인 -->
+            <div class="absolute inset-0 opacity-15" style="background-image: radial-gradient(#ea580c 1px, transparent 1px); background-size: 16px 16px;"></div>
+            <div class="relative z-10 flex flex-col items-center animate-bounce">
+              <i class="fa-solid fa-location-dot text-brand-600 text-3xl drop-shadow-md"></i>
+            </div>
+            <span class="relative z-10 mt-2 text-xs font-semibold text-gray-700 bg-white/80 px-3 py-1 rounded-full shadow-sm backdrop-blur-sm">
+              <span id="mapPinLabel">맛집 위치</span>
+            </span>
+            <div class="absolute bottom-2 right-2 text-[10px] text-gray-400 bg-white/60 px-2 py-0.5 rounded">
+              GPS Mock Map
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- 모달 하단 푸터 버튼 -->
+      <div class="p-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
+        <button id="deletePlaceBtn" onclick="confirmDeletePlace()" class="text-xs font-medium text-rose-500 hover:text-rose-700 px-3 py-2 rounded-lg hover:bg-rose-50 transition-colors">
+          <i class="fa-regular fa-trash-can mr-1"></i> 이 맛집 삭제
+        </button>
+        <button onclick="closeDetailModal()" class="px-5 py-2.5 bg-gray-800 hover:bg-gray-900 text-white rounded-xl text-sm font-medium transition-colors">
+          닫기
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 맛집 등록 모달 폼 -->
+  <div id="addModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+    <div class="fixed inset-0 bg-black/60 modal-backdrop transition-opacity" onclick="closeAddModal()"></div>
+
+    <div class="relative bg-white rounded-3xl max-w-xl w-full overflow-hidden shadow-2xl z-10 my-8 flex flex-col max-h-[90vh]">
+      <!-- 모달 헤더 -->
+      <div class="px-6 py-5 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-orange-50/50 to-amber-50/50">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-brand-500 text-white flex items-center justify-center text-sm">
+            <i class="fa-solid fa-plus font-bold"></i>
+          </div>
+          <h3 class="text-lg font-bold text-gray-900">새 맛집 등록하기</h3>
+        </div>
+        <button onclick="closeAddModal()" class="text-gray-400 hover:text-gray-600 w-8 h-8 rounded-lg flex items-center justify-center hover:bg-gray-100 transition-colors">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <!-- 등록 폼 바디 -->
+      <form id="addPlaceForm" onsubmit="handlePlaceSubmit(event)" class="p-6 overflow-y-auto space-y-4">
+        <!-- 상호명 -->
+        <div>
+          <label class="block text-xs font-bold text-gray-700 mb-1.5" for="formName">
+            상호명 <span class="text-rose-500">*</span>
+          </label>
+          <input type="text" id="formName" required placeholder="예: 우래옥, 런던 베이글 뮤지엄"
+                 class="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none text-sm transition-all">
+        </div>
+
+        <!-- 카테고리 & 평점 (2열) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold text-gray-700 mb-1.5" for="formCategory">
+              카테고리 <span class="text-rose-500">*</span>
+            </label>
+            <select id="formCategory" required
+                    class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none text-sm bg-white cursor-pointer">
+              <option value="한식">한식</option>
+              <option value="일식">일식</option>
+              <option value="중식">중식</option>
+              <option value="양식">양식</option>
+              <option value="카페/디저트">카페/디저트</option>
+              <option value="분식/야식">분식/야식</option>
+              <option value="아시안">아시안/기타</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-700 mb-1.5" for="formRating">
+              별점 평가 <span class="text-rose-500">*</span>
+            </label>
+            <select id="formRating" required
+                    class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none text-sm bg-white cursor-pointer font-medium text-amber-600">
+              <option value="5.0">★★★★★ 5.0 (인생 맛집! 강추)</option>
+              <option value="4.5">★★★★☆ 4.5 (매우 훌륭함)</option>
+              <option value="4.0" selected>★★★★☆ 4.0 (만족스러움)</option>
+              <option value="3.5">★★★☆☆ 3.5 (무난한 곳)</option>
+              <option value="3.0">★★★☆☆ 3.0 (보통)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- 위치/지역 & 대표 메뉴 -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold text-gray-700 mb-1.5" for="formLocation">
+              위치 / 지역 <span class="text-rose-500">*</span>
+            </label>
+            <input type="text" id="formLocation" required placeholder="예: 서울 종로구, 성수동, 연남동"
+                   class="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none text-sm transition-all">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-700 mb-1.5" for="formMenu">
+              대표 메뉴 <span class="text-rose-500">*</span>
+            </label>
+            <input type="text" id="formMenu" required placeholder="예: 평양냉면, 소금빵, 마르게리따"
+                   class="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none text-sm transition-all">
+          </div>
+        </div>
+
+        <!-- 이미지 입력 방식 (URL 직접 입력 또는 파일 선택) -->
+        <div>
+          <label class="block text-xs font-bold text-gray-700 mb-1.5">
+            맛집 대표 사진 <span class="text-xs font-normal text-gray-400">(URL 입력 또는 로컬 파일 업로드)</span>
+          </label>
+          <div class="space-y-2">
+            <input type="url" id="formImageUrl" onchange="previewImageUrl(this.value)" placeholder="이미지 웹 URL (https://...)" 
+                   class="w-full px-4 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none text-sm transition-all">
+            <div class="flex items-center gap-2">
+              <label class="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-xl border border-dashed border-gray-300 hover:border-brand-400 bg-gray-50 cursor-pointer text-xs text-gray-600 transition-colors">
+                <i class="fa-solid fa-cloud-arrow-up text-brand-500"></i>
+                <span id="fileInputLabel">내 기기에서 사진 파일 선택</span>
+                <input type="file" id="formImageFile" accept="image/*" class="hidden" onchange="handleImageFileSelect(event)">
+              </label>
+              <button type="button" onclick="setRandomFoodImage()" class="shrink-0 px-3 py-2 rounded-xl border border-gray-200 hover:bg-gray-100 text-xs text-gray-600 transition-colors" title="랜덤 음식 이미지 자동 채우기">
+                <i class="fa-solid fa-shuffle mr-1 text-amber-500"></i>랜덤 사진
+              </button>
+            </div>
+            <!-- 미리보기 박스 -->
+            <div id="imagePreviewContainer" class="hidden relative h-36 w-full rounded-xl overflow-hidden border border-gray-200 mt-2 bg-gray-50">
+              <img id="imagePreview" src="" alt="미리보기" class="w-full h-full object-cover">
+              <button type="button" onclick="clearImagePreview()" class="absolute top-2 right-2 bg-black/60 hover:bg-black/80 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 솔직한 한줄평 / 리뷰 -->
+        <div>
+          <label class="block text-xs font-bold text-gray-700 mb-1.5" for="formReview">
+            방문자 한줄평 & 리뷰 <span class="text-rose-500">*</span>
+          </label>
+          <textarea id="formReview" required rows="3" placeholder="분위기, 웨이팅 팁, 맛의 특징 등을 자세히 적어주세요!"
+                    class="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none text-sm transition-all resize-none"></textarea>
+        </div>
+
+        <!-- 버튼 바 -->
+        <div class="pt-3 border-t border-gray-100 flex items-center justify-end gap-3">
+          <button type="button" onclick="closeAddModal()" class="px-4 py-2.5 rounded-xl border border-gray-200 hover:bg-gray-100 text-gray-700 text-sm font-medium transition-colors">
+            취소
+          </button>
+          <button type="submit" class="px-6 py-2.5 rounded-xl bg-brand-500 hover:bg-brand-600 text-white font-semibold text-sm shadow-md shadow-brand-500/20 transition-all">
+            등록 완료
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- JavaScript 애플리케이션 로직 -->
+  <script>
+    // 카테고리 상수 목록
+    const CATEGORIES = ['전체', '한식', '일식', '중식', '양식', '카페/디저트', '분식/야식', '아시안'];
+
+    // 초기 목업 데이터 (LocalStorage 비어있을 때 사용)
+    const INITIAL_PLACES = [
+      {
+        id: 'place_1',
+        name: '우래옥 본점',
+        category: '한식',
+        rating: 4.8,
+        location: '서울 중구 주교동',
+        menu: '순면 평양냉면, 불고기',
+        review: '진하고 묵직한 육향의 평양냉면 원탑입니다. 메밀향이 풍부한 순면과 달착지근한 불고기의 조화는 언제나 예술입니다. 주말엔 대기 필수!',
+        image: 'https://images.unsplash.com/photo-1596797038530-2c107229654b?auto=format&fit=crop&w=800&q=80',
+        likes: 42,
+        isBookmarked: false,
+        createdAt: '2026-03-01T12:00:00Z'
+      },
+      {
+        id: 'place_2',
+        name: '오제제 광화문',
+        category: '일식',
+        rating: 4.7,
+        location: '서울 중구 세종대로',
+        menu: '안심 돈카츠 + 자루우동',
+        review: '육즙 가득 핑크빛 안심카츠의 부드러움이 독보적입니다. 말차 가루를 넣은 쫄깃하고 시원한 자루우동은 필수로 함께 시켜야 합니다.',
+        image: 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=800&q=80',
+        likes: 38,
+        isBookmarked: true,
+        createdAt: '2026-03-05T14:30:00Z'
+      },
+      {
+        id: 'place_3',
+        name: '연남토마 본점',
+        category: '양식',
+        rating: 4.6,
+        location: '서울 마포구 연남동',
+        menu: '명란 바질오일 파스타, 가츠덮밥',
+        review: '바질 향이 싱그럽게 감도는 오일 파스타 위에 고소한 명란이 가득 올라가 감칠맛이 폭발합니다. 감성 가득한 매장 인테리어도 데이트 코스로 최고!',
+        image: 'https://images.unsplash.com/photo-1551183053-bf91a1d81141?auto=format&fit=crop&w=800&q=80',
+        likes: 29,
+        isBookmarked: false,
+        createdAt: '2026-03-08T18:20:00Z'
+      },
+      {
+        id: 'place_4',
+        name: '런던 베이글 뮤지엄 안국',
+        category: '카페/디저트',
+        rating: 4.9,
+        location: '서울 종로구 북촌로',
+        menu: '브릭레인 샌드위치, 감자치즈 베이글',
+        review: '쫀득쫀득 찰진 식감의 베이글과 다양한 수제 크림치즈의 향연! 꿀을 곁들여 먹는 참깨 베이글은 인생의 달콤함 그 자체입니다.',
+        image: 'https://images.unsplash.com/photo-1586985289688-ca3cf47d3e6e?auto=format&fit=crop&w=800&q=80',
+        likes: 85,
+        isBookmarked: true,
+        createdAt: '2026-03-12T09:15:00Z'
+      },
+      {
+        id: 'place_5',
+        name: '팔선각',
+        category: '중식',
+        rating: 4.5,
+        location: '서울 서대문구 연희동',
+        menu: '바삭 탕수육, 삼선간짜장',
+        review: '소스가 부어져 나와도 끝까지 바삭함이 유지되는 정통 탕수육과 불향 가득 머금은 아삭한 양파의 간짜장이 조화롭습니다.',
+        image: 'https://images.unsplash.com/photo-1525755662778-989d0524087e?auto=format&fit=crop&w=800&q=80',
+        likes: 19,
+        isBookmarked: false,
+        createdAt: '2026-03-15T19:00:00Z'
+      },
+      {
+        id: 'place_6',
+        name: '애플하우스 이수',
+        category: '분식/야식',
+        rating: 4.6,
+        location: '서울 동작구 동작대로',
+        menu: '즉석 떡볶이, 무침군만두',
+        review: '달콤매콤 진한 양념에 버무려진 무침군만두는 한 번 맛보면 계속 생각나는 마성의 맛입니다. 볶음밥 마무리까지 필수 코스입니다.',
+        image: 'https://images.unsplash.com/photo-1627042633706-049021a8d542?auto=format&fit=crop&w=800&q=80',
+        likes: 54,
+        isBookmarked: false,
+        createdAt: '2026-03-18T13:40:00Z'
+      }
+    ];
+
+    // 랜덤 음식 이미지 풀 (이미지 없을 시 활용)
+    const RANDOM_FOOD_IMAGES = [
+      'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?auto=format&fit=crop&w=800&q=80'
+    ];
+
+    // 앱 상태 관리
+    let places = [];
+    let selectedCategory = '전체';
+    let searchQuery = '';
+    let sortBy = 'newest';
+    let onlyBookmarks = false;
+    let currentDetailPlaceId = null;
+    let uploadedImageBase64 = null;
+
+    // 초기화 함수
+    window.onload = function() {
+      loadPlaces();
+      renderCategoryChips();
+      renderPlaces();
+      updateBookmarkBadge();
+    };
+
+    // 로컬 스토리지 로드
+    function loadPlaces() {
+      try {
+        const stored = localStorage.getItem('taste_log_places');
+        if (stored) {
+          places = JSON.parse(stored);
+        } else {
+          places = [...INITIAL_PLACES];
+          savePlaces();
+        }
+      } catch (e) {
+        console.error('LocalStorage load failed:', e);
+        places = [...INITIAL_PLACES];
+      }
+    }
+
+    // 로컬 스토리지 저장
+    function savePlaces() {
+      try {
+        localStorage.setItem('taste_log_places', JSON.stringify(places));
+      } catch (e) {
+        console.error('LocalStorage save failed:', e);
+      }
+      updateBookmarkBadge();
+    }
+
+    // 카테고리 칩 렌더링
+    function renderCategoryChips() {
+      const container = document.getElementById('categoryChips');
+      container.innerHTML = CATEGORIES.map(cat => {
+        const isActive = (selectedCategory === cat);
+        return `
+          <button onclick="setCategory('${cat}')" 
+                  class="px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all whitespace-nowrap ${
+                    isActive 
+                      ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20' 
+                      : 'bg-white border border-gray-200 text-gray-600 hover:border-brand-300 hover:text-brand-600'
+                  }">
+            ${cat}
+          </button>
+        `;
+      }).join('');
+    }
+
+    // 카테고리 선택 핸들러
+    function setCategory(cat) {
+      selectedCategory = cat;
+      renderCategoryChips();
+      renderPlaces();
+    }
+
+    // 검색 핸들러
+    function handleSearch(val) {
+      searchQuery = val.trim().toLowerCase();
+      const clearBtn = document.getElementById('clearSearchBtn');
+      if (searchQuery.length > 0) {
+        clearBtn.classList.remove('hidden');
+      } else {
+        clearBtn.classList.add('hidden');
+      }
+      renderPlaces();
+    }
+
+    // 검색어 초기화
+    function clearSearch() {
+      const input = document.getElementById('searchInput');
+      input.value = '';
+      searchQuery = '';
+      document.getElementById('clearSearchBtn').classList.add('hidden');
+      renderPlaces();
+    }
+
+    // 정렬 변경 핸들러
+    function handleSortChange(val) {
+      sortBy = val;
+      renderPlaces();
+    }
+
+    // 찜한 맛집 모아보기 토글
+    function toggleBookmarkFilter() {
+      onlyBookmarks = !onlyBookmarks;
+      const btn = document.getElementById('toggleBookmarksBtn');
+      const notice = document.getElementById('bookmarkNotice');
+
+      if (onlyBookmarks) {
+        btn.classList.add('bg-brand-50', 'border-brand-500', 'text-brand-600');
+        notice.classList.remove('hidden');
+      } else {
+        btn.classList.remove('bg-brand-50', 'border-brand-500', 'text-brand-600');
+        notice.classList.add('hidden');
+      }
+      renderPlaces();
+    }
+
+    // 헤더 로고 클릭 시 필터 리셋
+    function resetFilters(e) {
+      if (e) e.preventDefault();
+      selectedCategory = '전체';
+      clearSearch();
+      onlyBookmarks = false;
+      sortBy = 'newest';
+      document.getElementById('sortBy').value = 'newest';
+      document.getElementById('bookmarkNotice').classList.add('hidden');
+      document.getElementById('toggleBookmarksBtn').classList.remove('bg-brand-50', 'border-brand-500', 'text-brand-600');
+      renderCategoryChips();
+      renderPlaces();
+    }
+
+    // 찜 뱃지 카운트 업데이트
+    function updateBookmarkBadge() {
+      const count = places.filter(p => p.isBookmarked).length;
+      document.getElementById('bookmarkBadge').textContent = count;
+    }
+
+    // 필터링 및 정렬된 맛집 리스트 획득
+    function getFilteredPlaces() {
+      return places.filter(place => {
+        // 1. 카테고리 필터
+        if (selectedCategory !== '전체' && place.category !== selectedCategory) {
+          return false;
+        }
+        // 2. 찜 여부 필터
+        if (onlyBookmarks && !place.isBookmarked) {
+          return false;
+        }
+        // 3. 검색어 필터 (상호명, 메뉴, 위치, 리뷰)
+        if (searchQuery) {
+          const matchName = place.name.toLowerCase().includes(searchQuery);
+          const matchMenu = place.menu.toLowerCase().includes(searchQuery);
+          const matchLocation = place.location.toLowerCase().includes(searchQuery);
+          const matchReview = place.review.toLowerCase().includes(searchQuery);
+          if (!matchName && !matchMenu && !matchLocation && !matchReview) {
+            return false;
+          }
+        }
+        return true;
+      }).sort((a, b) => {
+        if (sortBy === 'rating') {
+          return b.rating - a.rating;
+        } else if (sortBy === 'likes') {
+          return b.likes - a.likes;
+        } else {
+          // newest
+          return new Date(b.createdAt) - new Date(a.createdAt);
+        }
+      });
+    }
+
+    // 별점 아이콘 생성 헬퍼
+    function renderStars(rating) {
+      const fullStars = Math.floor(rating);
+      const hasHalf = (rating - fullStars) >= 0.3;
+      let starsHtml = '';
+
+      for (let i = 0; i < fullStars; i++) {
+        starsHtml += '<i class="fa-solid fa-star"></i>';
+      }
+      if (hasHalf) {
+        starsHtml += '<i class="fa-solid fa-star-half-stroke"></i>';
+      }
+      const emptyStars = 5 - fullStars - (hasHalf ? 1 : 0);
+      for (let i = 0; i < emptyStars; i++) {
+        starsHtml += '<i class="fa-regular fa-star text-amber-300"></i>';
+      }
+      return starsHtml;
+    }
+
+    // 맛집 카드 렌더링
+    function renderPlaces() {
+      const grid = document.getElementById('placesGrid');
+      const emptyState = document.getElementById('emptyState');
+      const filtered = getFilteredPlaces();
+
+      document.getElementById('totalCount').textContent = filtered.length;
+
+      if (filtered.length === 0) {
+        grid.innerHTML = '';
+        emptyState.classList.remove('hidden');
+        return;
+      }
+
+      emptyState.classList.add('hidden');
+      grid.innerHTML = filtered.map(place => {
+        return `
+          <div class="bg-white rounded-3xl border border-orange-100/90 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col group cursor-pointer"
+               onclick="openDetailModal('${place.id}')">
+            
+            <!-- 카드 이미지 상단 -->
+            <div class="relative h-48 sm:h-52 w-full overflow-hidden bg-gray-100">
+              <img src="${place.image}" alt="${place.name}" 
+                   onerror="this.onerror=null; this.src='https://placehold.co/600x400/fff7ed/ea580c?text=${encodeURIComponent(place.name)}';"
+                   class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+              
+              <!-- 카테고리 배지 -->
+              <div class="absolute top-3 left-3">
+                <span class="px-3 py-1 rounded-full text-xs font-bold bg-white/95 text-brand-700 shadow-sm backdrop-blur-sm">
+                  ${place.category}
+                </span>
+              </div>
+
+              <!-- 좋아요/찜 버튼 (카드 내 클릭 방지 버블링) -->
+              <button onclick="handleBookmarkClick(event, '${place.id}')"
+                      class="absolute top-3 right-3 w-9 h-9 rounded-full bg-white/90 hover:bg-white text-gray-400 hover:text-rose-500 shadow-md flex items-center justify-center transition-all ${place.isBookmarked ? 'text-rose-500 !bg-white' : ''}"
+                      title="찜하기">
+                <i class="${place.isBookmarked ? 'fa-solid' : 'fa-regular'} fa-heart text-base"></i>
+              </button>
+
+              <!-- 위치 인디케이터 -->
+              <div class="absolute bottom-2.5 left-3 text-white text-xs font-medium flex items-center gap-1 drop-shadow-md">
+                <i class="fa-solid fa-location-dot text-amber-400"></i> ${place.location}
+              </div>
+            </div>
+
+            <!-- 카드 바디 -->
+            <div class="p-5 flex-1 flex flex-col justify-between">
+              <div>
+                <!-- 상호명 & 별점 -->
+                <div class="flex items-start justify-between gap-2 mb-2">
+                  <h3 class="font-extrabold text-lg text-gray-900 group-hover:text-brand-600 transition-colors line-clamp-1">
+                    ${place.name}
+                  </h3>
+                  <div class="flex items-center gap-1 bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-200/60 shrink-0">
+                    <i class="fa-solid fa-star text-amber-500 text-xs"></i>
+                    <span class="text-xs font-bold text-amber-900">${place.rating.toFixed(1)}</span>
+                  </div>
+                </div>
+
+                <!-- 대표 메뉴 -->
+                <div class="flex items-center gap-1.5 text-xs text-gray-500 mb-3">
+                  <i class="fa-solid fa-utensils text-brand-400"></i>
+                  <span class="font-semibold text-gray-700">추천메뉴:</span>
+                  <span class="line-clamp-1">${place.menu}</span>
+                </div>
+
+                <!-- 솔직 한줄평 -->
+                <p class="text-xs sm:text-sm text-gray-600 line-clamp-2 leading-relaxed bg-[#FFFDF9] p-3 rounded-xl border border-orange-100/60 mb-4">
+                  "${place.review}"
+                </p>
+              </div>
+
+              <!-- 카드 푸터 (좋아요 수치 및 상세보기 링크) -->
+              <div class="pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400">
+                <span class="flex items-center gap-1">
+                  <i class="fa-solid fa-heart text-rose-400"></i>
+                  <strong class="text-gray-700">${place.likes}</strong>명이 찜함
+                </span>
+                <span class="text-brand-600 font-semibold flex items-center gap-0.5 group-hover:translate-x-1 transition-transform">
+                  자세히 보기 <i class="fa-solid fa-angle-right text-[10px]"></i>
+                </span>
+              </div>
+            </div>
+
+          </div>
+        `;
+      }).join('');
+    }
+
+    // 카드에서 찜하기 토글
+    function handleBookmarkClick(e, placeId) {
+      e.stopPropagation();
+      togglePlaceBookmark(placeId);
+    }
+
+    // 찜하기 공통 로직
+    function togglePlaceBookmark(placeId) {
+      const target = places.find(p => p.id === placeId);
+      if (!target) return;
+
+      target.isBookmarked = !target.isBookmarked;
+      if (target.isBookmarked) {
+        target.likes += 1;
+        showToast(`'${target.name}'을(를) 찜 목록에 저장했습니다.`, 'fa-heart text-rose-500');
+      } else {
+        target.likes = Math.max(0, target.likes - 1);
+        showToast(`'${target.name}' 찜을 취소했습니다.`, 'fa-circle-info text-gray-400');
+      }
+
+      savePlaces();
+      renderPlaces();
+
+      // 상세 모달이 열려있다면 모달 내부 찜 버튼도 즉시 동기화
+      if (currentDetailPlaceId === placeId) {
+        updateDetailBookmarkButton(target);
+      }
+    }
+
+    // 상세 모달 열기
+    function openDetailModal(placeId) {
+      const place = places.find(p => p.id === placeId);
+      if (!place) return;
+
+      currentDetailPlaceId = placeId;
+
+      document.getElementById('detailImage').src = place.image;
+      document.getElementById('detailImage').onerror = function() {
+        this.src = `https://placehold.co/600x400/fff7ed/ea580c?text=${encodeURIComponent(place.name)}`;
+      };
+      document.getElementById('detailCategory').textContent = place.category;
+      document.getElementById('detailLocationText').textContent = place.location;
+      document.getElementById('detailTitle').textContent = place.name;
+      document.getElementById('detailRatingValue').textContent = place.rating.toFixed(1);
+      document.getElementById('detailStarDisplay').innerHTML = renderStars(place.rating);
+      document.getElementById('detailMenuBadge').textContent = place.menu;
+      document.getElementById('detailReview').textContent = place.review;
+      document.getElementById('detailFullAddress').textContent = `${place.location} 부근 (상세 주소는 방문 전 재확인을 권장합니다)`;
+      document.getElementById('mapPinLabel').textContent = place.name;
+
+      updateDetailBookmarkButton(place);
+
+      document.getElementById('detailModal').classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+    }
+
+    // 상세 모달 찜 버튼 상태 반영
+    function updateDetailBookmarkButton(place) {
+      const likeBtn = document.getElementById('detailLikeBtn');
+      const countEl = document.getElementById('detailLikeCount');
+      countEl.textContent = place.likes;
+
+      if (place.isBookmarked) {
+        likeBtn.className = 'flex items-center gap-1.5 px-4 py-2 rounded-xl border border-rose-200 bg-rose-50 text-rose-600 font-semibold text-sm transition-all';
+        likeBtn.innerHTML = `<i class="fa-solid fa-heart text-rose-500"></i> <span id="detailLikeCount">${place.likes}</span>`;
+      } else {
+        likeBtn.className = 'flex items-center gap-1.5 px-4 py-2 rounded-xl border border-gray-200 text-gray-700 hover:border-brand-500 hover:text-brand-600 transition-all font-medium text-sm';
+        likeBtn.innerHTML = `<i class="fa-regular fa-heart"></i> <span id="detailLikeCount">${place.likes}</span>`;
+      }
+    }
+
+    // 상세 모달 내에서 찜하기 토글
+    function toggleDetailBookmark() {
+      if (!currentDetailPlaceId) return;
+      togglePlaceBookmark(currentDetailPlaceId);
+    }
+
+    // 상세 모달 닫기
+    function closeDetailModal() {
+      document.getElementById('detailModal').classList.add('hidden');
+      document.body.style.overflow = 'auto';
+      currentDetailPlaceId = null;
+    }
+
+    // 상세 주소 클립보드 복사
+    function copyDetailAddress() {
+      const place = places.find(p => p.id === currentDetailPlaceId);
+      if (!place) return;
+      copyToClipboard(place.location);
+      showToast('주소가 클립보드에 복사되었습니다!', 'fa-copy text-amber-500');
+    }
+
+    // 맛집 공유하기
+    function sharePlace() {
+      const place = places.find(p => p.id === currentDetailPlaceId);
+      if (!place) return;
+      const shareText = `[TasteLog 맛집 추천]\n${place.name} (${place.category})\n- 평점: ★ ${place.rating}\n- 대표 메뉴: ${place.menu}\n- 위치: ${place.location}`;
+      copyToClipboard(shareText);
+      showToast('맛집 정보가 클립보드에 복사되었습니다. 친구에게 공유해보세요!', 'fa-share-nodes text-brand-500');
+    }
+
+    // 맛집 삭제 확인
+    function confirmDeletePlace() {
+      const place = places.find(p => p.id === currentDetailPlaceId);
+      if (!place) return;
+
+      // 사용자 친화적 UI를 위해 브라우저 confirm 대신 확인 뷰 처리 가능하지만 직접 필터링
+      places = places.filter(p => p.id !== currentDetailPlaceId);
+      savePlaces();
+      closeDetailModal();
+      renderPlaces();
+      showToast(`'${place.name}' 맛집이 목록에서 삭제되었습니다.`, 'fa-trash-can text-rose-500');
+    }
+
+    // 신규 등록 모달 열기
+    function openAddModal() {
+      document.getElementById('addPlaceForm').reset();
+      clearImagePreview();
+      document.getElementById('addModal').classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+    }
+
+    // 신규 등록 모달 닫기
+    function closeAddModal() {
+      document.getElementById('addModal').classList.add('hidden');
+      document.body.style.overflow = 'auto';
+      clearImagePreview();
+    }
+
+    // 로컬 이미지 파일 선택 처리
+    function handleImageFileSelect(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      if (!file.type.startsWith('image/')) {
+        showToast('이미지 파일만 업로드할 수 있습니다.', 'fa-triangle-exclamation text-rose-500');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        uploadedImageBase64 = evt.target.result;
+        showImagePreview(uploadedImageBase64);
+        document.getElementById('fileInputLabel').textContent = file.name;
+        document.getElementById('formImageUrl').value = '';
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // 이미지 URL 입력 시 미리보기
+    function previewImageUrl(url) {
+      if (url.trim()) {
+        uploadedImageBase64 = null;
+        document.getElementById('formImageFile').value = '';
+        document.getElementById('fileInputLabel').textContent = '내 기기에서 사진 파일 선택';
+        showImagePreview(url.trim());
+      }
+    }
+
+    // 랜덤 음식 사진 넣기
+    function setRandomFoodImage() {
+      const randomImg = RANDOM_FOOD_IMAGES[Math.floor(Math.random() * RANDOM_FOOD_IMAGES.length)];
+      document.getElementById('formImageUrl').value = randomImg;
+      uploadedImageBase64 = null;
+      document.getElementById('formImageFile').value = '';
+      document.getElementById('fileInputLabel').textContent = '내 기기에서 사진 파일 선택';
+      showImagePreview(randomImg);
+      showToast('맛있는 추천 이미지를 불러왔습니다.', 'fa-wand-magic-sparkles text-amber-500');
+    }
+
+    function showImagePreview(src) {
+      const container = document.getElementById('imagePreviewContainer');
+      const img = document.getElementById('imagePreview');
+      img.src = src;
+      container.classList.remove('hidden');
+    }
+
+    function clearImagePreview() {
+      uploadedImageBase64 = null;
+      document.getElementById('formImageUrl').value = '';
+      document.getElementById('formImageFile').value = '';
+      document.getElementById('fileInputLabel').textContent = '내 기기에서 사진 파일 선택';
+      document.getElementById('imagePreviewContainer').classList.add('hidden');
+      document.getElementById('imagePreview').src = '';
+    }
+
+    // 신규 등록 폼 제출 핸들러
+    function handlePlaceSubmit(e) {
+      e.preventDefault();
+
+      const name = document.getElementById('formName').value.trim();
+      const category = document.getElementById('formCategory').value;
+      const rating = parseFloat(document.getElementById('formRating').value);
+      const location = document.getElementById('formLocation').value.trim();
+      const menu = document.getElementById('formMenu').value.trim();
+      const review = document.getElementById('formReview').value.trim();
+      const urlInput = document.getElementById('formImageUrl').value.trim();
+
+      // 이미지 우선순위: 업로드한 base64 > 입력한 URL > 랜덤 기본 이미지
+      let finalImage = uploadedImageBase64 || urlInput;
+      if (!finalImage) {
+        finalImage = RANDOM_FOOD_IMAGES[Math.floor(Math.random() * RANDOM_FOOD_IMAGES.length)];
+      }
+
+      const newPlace = {
+        id: 'place_' + Date.now(),
+        name,
+        category,
+        rating,
+        location,
+        menu,
+        review,
+        image: finalImage,
+        likes: 0,
+        isBookmarked: false,
+        createdAt: new Date().toISOString()
+      };
+
+      // 목록 최상단에 추가
+      places.unshift(newPlace);
+      savePlaces();
+      closeAddModal();
+      renderPlaces();
+
+      showToast(`'${name}' 맛집이 성공적으로 등록되었습니다!`, 'fa-circle-check text-green-400');
+    }
+
+    // 클립보드 복사 헬퍼 (document.execCommand 사용)
+    function copyToClipboard(text) {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.top = '0';
+      textarea.style.left = '0';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.focus();
+      textarea.select();
+      try {
+        document.execCommand('copy');
+      } catch (err) {
+        console.error('Copy fallback failed', err);
+      }
+      document.body.removeChild(textarea);
+    }
+
+    // 토스트 메시지 알림 팝업
+    let toastTimeout;
+    function showToast(message, iconClass = 'fa-check-circle text-brand-400') {
+      const toast = document.getElementById('toastMessage');
+      const textEl = document.getElementById('toastText');
+      const iconEl = document.getElementById('toastIcon');
+
+      textEl.textContent = message;
+      iconEl.className = 'fa-solid ' + iconClass;
+
+      toast.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
+      toast.classList.add('translate-y-0', 'opacity-100');
+
+      clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        toast.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
+        toast.classList.remove('translate-y-0', 'opacity-100');
+      }, 3000);
+    }
+  </script>
+</body>
+</html>
