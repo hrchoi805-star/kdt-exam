@@ -77,7 +77,7 @@
             <i class="fa-solid fa-utensils text-xl"></i>
           </div>
           <div>
-            <span class="text-2xl font-extrabold tracking-tight bg-gradient-to-r from-brand-600 to-amber-600 bg-clip-text text-transparent">TasteLog</span>
+            <span class="text-2xl font-extrabold tracking-tight bg-gradient-to-r from-brand-600 to-amber-600 bg-clip-text text-transparent">Taste</span>
             <span class="block text-[11px] font-medium text-gray-400 tracking-wider">미식 큐레이션 커뮤니티</span>
           </div>
         </a>
@@ -114,7 +114,7 @@
       </span>
       <h1 class="text-3xl sm:text-4xl md:text-5xl font-black text-gray-900 tracking-tight leading-tight">
         오늘 한 끼는 어디서 드실래요?<br>
-        <span class="bg-gradient-to-r from-brand-500 via-brand-600 to-amber-600 bg-clip-text text-transparent">진짜 맛집들의 기록, TasteLog</span>
+        <span class="bg-gradient-to-r from-brand-500 via-brand-600 to-amber-600 bg-clip-text text-transparent">진짜 맛집들의 기록, Taste</span>
       </h1>
       <p class="mt-4 text-base sm:text-lg text-gray-600 max-w-2xl mx-auto font-normal">
         광고 없는 솔직한 평점과 추천 메뉴, 생생한 후기를 확인하고<br class="hidden sm:inline"> 당신만의 보석 같은 맛집을 함께 기록해보세요.
@@ -204,10 +204,10 @@
         <div class="w-7 h-7 rounded-lg bg-brand-500 text-white flex items-center justify-center text-xs font-bold">
           <i class="fa-solid fa-utensils"></i>
         </div>
-        <span class="font-bold text-gray-800">TasteLog</span>
+        <span class="font-bold text-gray-800">Taste</span>
         <span>— 당신 곁의 따뜻한 맛집 가이드</span>
       </div>
-      <p class="text-xs text-gray-400">© 2026 TasteLog. All rights reserved. 맛있는 일상을 함께 나누세요.</p>
+      <p class="text-xs text-gray-400">© 2026 Taste. All rights reserved. 맛있는 일상을 함께 나누세요.</p>
     </div>
   </footer>
 
@@ -923,7 +923,7 @@
     function sharePlace() {
       const place = places.find(p => p.id === currentDetailPlaceId);
       if (!place) return;
-      const shareText = `[TasteLog 맛집 추천]\n${place.name} (${place.category})\n- 평점: ★ ${place.rating}\n- 대표 메뉴: ${place.menu}\n- 위치: ${place.location}`;
+      const shareText = `[Taste 맛집 추천]\n${place.name} (${place.category})\n- 평점: ★ ${place.rating}\n- 대표 메뉴: ${place.menu}\n- 위치: ${place.location}`;
       copyToClipboard(shareText);
       showToast('맛집 정보가 클립보드에 복사되었습니다. 친구에게 공유해보세요!', 'fa-share-nodes text-brand-500');
     }
